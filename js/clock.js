@@ -146,6 +146,16 @@
 		// Hmmm. Do we need relative time?
 		var starttime = audio.currentTime;
 
+		Object.defineProperties(this, {
+			time: {
+				get: function() { return audio.currentTime; }
+			},
+
+			beat: {
+				get: function() { return this.beatAtTime(audio.currentTime); }
+			}
+		});
+
 		this
 		.on('add', deleteTimesAfterEntry)
 		.on('add', setTimeOnEntry)
@@ -158,6 +168,13 @@
 		});
 
 		assign(this, {
+			create: function(tempo, beat) {
+				this.add({
+					beat: isDefined(beat) ? beat : this.beat ,
+					tempo: tempo
+				});
+			},
+
 			onTime: function(time, fn) {
 				// Make the cue timer 
 				cue(cues, audio.currentTime, time, fn, 0);

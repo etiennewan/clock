@@ -35,6 +35,19 @@ with a default output representing the current beat <code>rate</code>.
 
 ## clock
 
+### .time
+
+Alias property for <code>audio.currentTime</code>. 
+
+### .beat
+
+The current beat position.
+
+### .create(tempo, beat)
+
+Creates a tempo change at a time given by <code>beat</code>. If beat is not
+defined, the clock creates a tempo change at the current <code>beat</code>.
+
 ### .add(tempo)
 
 Adds a tempo change to the list. Set tempo to 120bpm at beat 42:
