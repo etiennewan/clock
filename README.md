@@ -37,11 +37,11 @@ with a default output representing the current beat <code>rate</code>.
 
 ### .time
 
-Alias property for <code>audio.currentTime</code>. 
+The current time. Gets <code>audio.currentTime</code>.
 
 ### .beat
 
-The current beat position.
+The current beat. Gets <code>clock.beatAtTime(audio.currentTime)</code>.
 
 ### .create(tempo, beat)
 
