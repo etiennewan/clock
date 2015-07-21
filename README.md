@@ -36,7 +36,7 @@ A clock is a Collection of tempo data, used to map a <code>beat</code> clock
 against the audio context's <code>time</code> clock. It is also an AudioObject
 with a default output representing the current beat <code>rate</code>.
 
-### clock.add(tempo)
+### .add(tempo)
 
 Adds a tempo change to the list. Set tempo to 120bpm at beat 42:
 
@@ -45,15 +45,15 @@ Adds a tempo change to the list. Set tempo to 120bpm at beat 42:
         rate: 2
     });
 
-### clock.find(beat)
+### .find(beat)
 
 Returns tempo change found at <code>beat</code> or <code>undefined</code>.
 
-### clock.remove(beat)
+### .remove(beat)
 
 Removes tempo change found at <code>beat</code>.
 
-### clock.cueTime(time, fn)<br/>clock.cueBeat(beat, fn)
+### .cueTime(time, fn)<br/>.cueBeat(beat, fn)
 
 Cue a function to be called just before <code>time</code> or <code>beat</code>.
 <code>fn</code> is called with the argument <code>time</code>, which can used to
@@ -64,17 +64,17 @@ accurately schedule Web Audio changes.
         bufferSourceNode.start(time);
     });
 
-##### clock.cueTime(time, fn, lookahead)<br/>clock.cueBeat(time, fn, lookahead)
+##### .cueTime(time, fn, lookahead)<br/>.cueBeat(time, fn, lookahead)
 
 Pass in a number <code>lookahead</code> to override the default <code>-60</code> ms.
 
-### clock.onTime(time, fn)<br/>clock.onBeat(beat, fn)
+### .onTime(time, fn)<br/>.onBeat(beat, fn)
 
 Shorthand for <code>clock.cueTime(time, fn, 0)</code> or
 <code>clock.cueBeat(beat, fn, 0)</code>, calls <code>fn</code>
 at the time or beat specified with <code>0</code> ms lookahead.
 
-### clock.uncueTime(time, fn)<br/>clock.uncueBeat(beat, fn)
+### .uncueTime(time, fn)<br/>.uncueBeat(beat, fn)
 
 Removes <code>fn</code> at <code>time</code> or <code>beat</code> from the timer queue.
 Either or both <code>time</code> and <code>fn</code> can be given. To remove all cues
@@ -87,7 +87,7 @@ To removes all cues to <code>fn</code> from the timer queue:
 
     clock.uncueTime(fn)
 
-### clock.uncueAfterTime(time, fn)<br/>clock.uncueAfterBeat(beat, fn)
+### .uncueAfterTime(time, fn)<br/>.uncueAfterBeat(beat, fn)
 
 Removes all cues to <code>fn</code> after <code>time</code> or <code>beat</code>.
 Either or both <code>time</code>/<code>beat</code> and <code>fn</code> can be given.
@@ -96,11 +96,11 @@ To remove all cues after <code>time</code> or <code>beat</code> from the timer q
     clock.uncueAfterTime(time)
     clock.uncueAfterBeat(beat)
 
-### clock.timeAtBeat(beat)
+### .timeAtBeat(beat)
 
 Returns the audio context time at <code>beat</code>.
 
-### clock.beatAtTime(time)
+### .beatAtTime(time)
 
 Returns the beat at <code>time</code>.
 
