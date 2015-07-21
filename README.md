@@ -28,13 +28,12 @@ Constructs a tempo clock, where <code>audio</code> is a Web Audio context and
     var audio = new window.AudioContext();
     var clock = new Clock(audio);
 
-
-## clock
-
 A clock is tool for scheduling function calls on times or beats.
 A clock is a Collection of tempo data, used to map a <code>beat</code> clock
 against the audio context's <code>time</code> clock. It is also an AudioObject
 with a default output representing the current beat <code>rate</code>.
+
+## clock
 
 ### .add(tempo)
 
