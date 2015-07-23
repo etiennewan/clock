@@ -60,8 +60,7 @@
 				}
 			}
 		}
-		else if (typeof time === 'function') {
-			fn = time;
+		else {
 			while (n--) {
 				data = cues[n];
 				if (fn === data[1]) {
@@ -171,7 +170,7 @@
 			start: function() {
 				deleteTimesAfterBeat(this, 0);
 				starttime = audio.currentTime;
-				recueAfterBeat(cues, this, 0);
+				//recueAfterBeat(cues, this, 0);
 				this.trigger('start', starttime);
 				return this;
 			},
@@ -209,12 +208,24 @@
 			},
 
 			uncueTime: function(time, fn) {
-				uncue(cues, time, fn);
+				if (typeof time === 'number') {
+					uncue(cues, time, fn);
+				}
+				else {
+					uncue(cues, undefined, time);
+				}
+
 				return this;
 			},
 
 			uncueBeat: function(beat, fn) {
-				uncue(cues, this.timeAtBeat(beat), fn);
+				if (typeof beat === 'number') {
+					uncue(cues, this.timeAtBeat(beat), fn);
+				}
+				else {
+					uncue(cues, undefined, beat);
+				}
+
 				return this;
 			},
 

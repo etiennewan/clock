@@ -36,8 +36,9 @@ module('Clock', function(fixture) {
 
 	asyncTest('.cueTime(time, fn)', 1, function() {
 		var clock = new Clock(audio, [
-				{ beat: 0, tempo: 120 }
-			]);
+			{ beat: 0, tempo: 120 },
+			{ beat: 8, tempo: 180 }
+		]);
 
 		setTimeout(function() {
 			clock.start();
@@ -70,6 +71,50 @@ module('Clock', function(fixture) {
 			
 			clock.cueTime(time, fn);
 			clock.uncueTime(fn);
+		}, 3000);
+
+		setTimeout(function() {
+			start();
+		}, 5000);
+	});
+
+	asyncTest('.cueBeat(beat, fn)', 1, function() {
+		var clock = new Clock(audio, [
+			{ beat: 0, tempo: 120 },
+			{ beat: 8, tempo: 180 }
+		]);
+
+		setTimeout(function() {
+			clock.start();
+		}, 100);
+
+		// Testing cueing is a little didgy because setTimeout does
+		// not run at ms resolution when window not focused...
+
+		setTimeout(function() {
+			var beat = clock.beat + 2;
+
+			function fn(time) {
+				ok(false, 'This test should never run - should have been .uncueBeat(beat)');
+			}
+
+			clock.cueBeat(beat, fn);
+			clock.uncueBeat(beat);
+			clock.cueBeat(beat + 1, function(time) {
+				var t = time - audio.currentTime;
+				ok(t > 0 && t < 0.120, 'Cue did not arrive between 0 and 120ms before time: ' + t);
+			});
+		}, 2000);
+
+		setTimeout(function() {
+			var beat = clock.beat + 2;
+
+			function fn(time) {
+				ok(false, 'This test should never run - should have been .uncueBeat(fn)');
+			}
+
+			clock.cueBeat(beat, fn);
+			clock.uncueBeat(fn);
 		}, 3000);
 
 		setTimeout(function() {
