@@ -9,5 +9,8 @@
 <script src="js/clock.js"></script>
 
 <script>
-	var clock = Clock();
+	var audio = new window.AudioContext();
+	var clock = new Clock(audio, [
+			{ beat: 0, tempo: 120 }
+		]);
 </script>

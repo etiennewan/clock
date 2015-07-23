@@ -101,7 +101,7 @@
 	}
 
 	function recueAfterBeat(cues, clock, beat) {
-		recueAfterTime(cues, clock.timeAtBeat(time), fn);
+		recueAfterTime(cues, clock, clock.timeAtBeat(beat));
 	}
 
 	function tempoToRate(tempo) { return tempo / 60; }
@@ -109,6 +109,7 @@
 
 	function deleteTimesAfterBeat(clock, beat) {
 		var n = -1;
+		var entry;
 
 		while (clock[++n]) {
 			entry = clock[n];
@@ -127,33 +128,30 @@
 	function Clock(audio, data) {
 		var oscillator = audio.createOscillator();
 		var waveshaper = audio.createWaveShaper();
-		var gain = audio.createGain();
+		var gain1 = audio.createGain();
+		var gain2 = audio.createGain();
+		var starttime = audio.currentTime;
 
 		oscillator.type = 'square';
 		oscillator.connect(waveshaper);
 		waveshaper.shape = [1, 1, 1];
-		gain.gain.setValueAtTime(1, audio.currentTime);
+		gain1.gain.setValueAtTime(1, starttime);
+		gain2.gain.setValueAtTime(1, starttime);
 		oscillator.start();
 
 		Collection.call(this, data || [], { index: 'beat' });
 		AudioObject.call(this, audio, undefined, {
-			unity: waveshaper,
-			default: gain
+			unity:    waveshaper,
+			rate:     gain1,
+			duration: gain2,
 		});
 
 		var cues = [];
 
-		// Hmmm. Do we need relative time?
-		var starttime = audio.currentTime;
-
 		Object.defineProperties(this, {
-			time: {
-				get: function() { return audio.currentTime; }
-			},
-
-			beat: {
-				get: function() { return this.beatAtTime(audio.currentTime); }
-			}
+			startTime: { get: function() { return starttime; }},
+			time: { get: function() { return audio.currentTime; }},
+			beat: { get: function() { return this.beatAtTime(audio.currentTime); }}
 		});
 
 		this
@@ -161,18 +159,31 @@
 		.on('add', setTimeOnEntry)
 		.on('add', function(clock, entry) {
 			clock.cueBeat(entry.beat, function(time) {
-				gain.gain.setValueAtTime(1, time);
+				var rate = tempoToRate(entry.tempo);
+				gain1.gain.setValueAtTime(rate,   time);
+				gain2.gain.setValueAtTime(1/rate, time);
 			});
 
 			recueAfterBeat(cues, clock, entry.beat);
 		});
 
 		assign(this, {
+			start: function() {
+				deleteTimesAfterBeat(this, 0);
+				starttime = audio.currentTime;
+				recueAfterBeat(cues, this, 0);
+				this.trigger('start', starttime);
+				return this;
+			},
+
 			create: function(tempo, beat) {
-				this.add({
-					beat: isDefined(beat) ? beat : this.beat ,
-					tempo: tempo
-				});
+				var entry = {
+					tempo: tempo,
+					beat: isDefined(beat) ? beat : this.beat
+				};
+
+				this.add(entry);
+				return entry;
 			},
 
 			onTime: function(time, fn) {
@@ -187,7 +198,7 @@
 			},
 
 			cueTime: function(time, fn, offset) {
-				// Make the cue timer 
+				// Make the cue timer
 				cue(cues, audio.currentTime, time, fn, isDefined(offset) ? offset : lookahead);
 				return this;
 			},
@@ -231,7 +242,7 @@
 			if (!entry) {
 				// Where there are no tempo entries, make time
 				// equivalent to beat
-				return beat;
+				return this.startTime + beat;
 			}
 
 			var b1 = 0;
@@ -239,15 +250,15 @@
 			var time = 0;
 
 			while (entry && entry.beat < beat) {
-				time += entry.time || (entry.beat - b1 / rate);
+				time = entry.time || (entry.time = time + (entry.beat - b1) / rate);
 
 				// Next entry
 				b1 = entry.beat;
-				rate = entry.rate;
+				rate = tempoToRate(entry.tempo);
 				entry = tempos[++n];
 			}
 
-			return time;
+			return this.startTime + time + (beat - b1) / rate;
 		},
 
 		beatAtTime: function(time) {
@@ -261,14 +272,16 @@
 			if (!entry) {
 				// Where there are no tempo entries, make beat
 				// equivalent to time
-				return beat;
+				return time - this.startTime;
 			}
 
-			var rate, beat, t1;
-			var t2 = 0;
+			var beat = 0;
+			var rate = 1;
+			var t2 = this.startTime;
+			var t1 = t2;
 
 			while (t2 < time) {
-				rate  = entry.rate;
+				rate  = tempoToRate(entry.tempo);
 				beat  = entry.beat;
 				entry = tempos[++n];
 				t1 = t2;
