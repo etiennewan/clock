@@ -12,6 +12,135 @@
 	var audio = new window.AudioContext();
 	var clock = new Clock(audio, [
 			{ beat: 0, tempo: 120 },
-			{ beat: 8, tempo: 180 }
+			{ beat: 4, tempo: 180 },
+			{ beat: 8, tempo: 240 },
+			{ beat: 12, tempo: 80 }
 		]);
+
+	var timeDiffs = [];
+
+	function sum(n, v) { return n + v; }
+
+	/* Rate */
+
+	var rate = AudioObject.outputs(clock, 'rate');
+	var gain = audio.createGain();
+	var analyser = audio.createAnalyser();
+
+	rate.connect(gain);
+	gain.connect(analyser);
+
+	gain.gain.value = 0.5;
+	analyser.fftSize = 1024;
+
+	var bufferLength = analyser.frequencyBinCount;
+	var dataArray = new Float32Array(bufferLength);
+
+	function analyseRate() {
+		analyser.getFloatTimeDomainData(dataArray);
+
+		var max = Math.max.apply(Math, dataArray);
+		var min = Math.min.apply(Math, dataArray);
+
+		return min + (max - min) / 2 ;
+	};
+
+	/* Buffers */
+
+	var bufferBass, bufferHat, bufferSnare;
+
+	function fetchBuffer(audio, url) {
+		return new Promise(function(accept, reject) {
+			var request = new XMLHttpRequest();
+			request.open('GET', url, true);
+			request.responseType = 'arraybuffer';
+
+			request.onload = function() {
+				audio.decodeAudioData(request.response, accept, reject);
+			}
+
+			request.send();
+		});
+	}
+
+	function playBuffer(buffer) {
+		var source = audio.createBufferSource();
+		gain.connect(source.playbackRate);
+		source.connect(audio.destination);
+		source.buffer = buffer || [];
+		return source;
+	}
+
+	fetchBuffer(audio, 'audio/bassdrum.wav').then(function(buffer) { bufferBass = buffer; });
+	fetchBuffer(audio, 'audio/hihat.wav').then(function(buffer) { bufferHat = buffer; });
+	fetchBuffer(audio, 'audio/snare.wav').then(function(buffer) { bufferSnare = buffer; });
+
+
+	/* Tests */
+
+	function log(name, time) {
+		var timeDiff = time - clock.time;
+		timeDiffs.push(timeDiff);
+		console.log(name, clock.beatAtTime(time).toFixed(3), time.toFixed(3), timeDiff.toFixed(3), analyseRate());
+	}
+
+	function playBass(time) {
+		if (!bufferBass) { return; }
+		var source = playBuffer(bufferBass)
+		source.start(time);
+		log('kick ', time);
+	}
+
+	function playHat(time) {
+		if (!bufferHat) { return; }
+		var source = playBuffer(bufferHat)
+		source.start(time);
+		log('hihat', time);
+	}
+
+	function playSnare(time) {
+		if (!bufferSnare) { return; }
+		var source = playBuffer(bufferSnare)
+		source.start(time);
+		log('snare', time);
+	}
+
+	function end(time) {
+		var clockTime = clock.time;
+		var total = timeDiffs.reduce(sum, 0);
+		var average = total / timeDiffs.length;
+
+		clock.uncue();
+
+		console.log('-----', clock.beatAtTime(clockTime).toFixed(3), (time - clockTime).toFixed(3), average.toFixed(3), analyseRate());
+	}
+
+	function cueHat() {
+		var n = 0;
+
+		function cue(time) {
+			playHat(time);
+			if (n > 32) { return; }
+			n = n + 0.5;
+			clock.cue(n, cue);
+		}
+
+		clock.cue(n, cue);
+	}
+
+	clock.start(1);
+
+	cueHat();
+
+	clock
+	.cue(0,  playBass)
+	.cue(2,  playBass)
+	.cue(4,  playBass)
+	.cue(6,  playBass)
+	.cue(8,  playBass)
+	.cue(10, playBass)
+	.cue(12, playBass)
+	.cue(14, playBass)
+	.cue(16, playBass)
+	.on(16, end);
 </script>

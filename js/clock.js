@@ -45,6 +45,16 @@
 		cues.push(data);
 	}
 
+	function uncueAll(cues) {
+		var n = cues.length;
+
+		while (n--) {
+			clearTimeout(cues[n][2]);
+		}
+
+		cues.length = 0;
+	}
+
 	function uncue(cues, time, fn) {
 		var n = cues.length;
 		var data;
@@ -89,7 +99,7 @@
 	function recueAfterTime(cues, clock, time) {
 		var n = clock.length;
 		var data;
-
+console.log(clock, n);
 		while (--n) {
 			data = cues[n];
 			if (time < data[0]) {
@@ -157,7 +167,7 @@
 		.on('add', deleteTimesAfterEntry)
 		.on('add', setTimeOnEntry)
 		.on('add', function(clock, entry) {
-			clock.cueBeat(entry.beat, function(time) {
+			clock.cue(entry.beat, function(time) {
 				var rate = tempoToRate(entry.tempo);
 				gain1.gain.setValueAtTime(rate,   time);
 				gain2.gain.setValueAtTime(1/rate, time);
@@ -167,9 +177,9 @@
 		});
 
 		assign(this, {
-			start: function() {
+			start: function(time) {
 				deleteTimesAfterBeat(this, 0);
-				starttime = audio.currentTime;
+				starttime = isDefined(time) ? time : audio.currentTime ;
 				//recueAfterBeat(cues, this, 0);
 				this.trigger('start', starttime);
 				return this;
@@ -181,6 +191,7 @@
 					beat: isDefined(beat) ? beat : this.beat
 				};
 
+				this.remove(beat);
 				this.add(entry);
 				return entry;
 			},
@@ -196,6 +207,11 @@
 			},
 
 			uncue: function(beat, fn) {
+				if (arguments.length === 0) {
+					uncueAll(cues);
+					return this;
+				}
+
 				if (typeof beat === 'number') {
 					uncue(cues, this.timeAtBeat(beat), fn);
 				}

@@ -8,6 +8,10 @@ module('Clock', function(fixture) {
 			{ beat: 0, tempo: 120 }
 		]);
 
+	function isWithinGnatsCrotchet(a, b) {
+		return (b - a < 0.0000000000001) && (a - b < 0.0000000000001);
+	}
+
 	asyncTest('properties', function() {
 		setTimeout(function() {
 			console.log('clock.startTime', clock.startTime);
@@ -42,6 +46,7 @@ module('Clock', function(fixture) {
 
 		setTimeout(function() {
 			clock.start();
+			console.log('clock.startTime', clock.startTime);
 		}, 1000);
 
 		// Testing cueing is a little didgy because setTimeout does
@@ -78,7 +83,7 @@ module('Clock', function(fixture) {
 		}, 5000);
 	});
 
-	asyncTest('.cue(beat, fn)', 1, function() {
+	asyncTest('.cue(beat, fn)', 3, function() {
 		var clock = new Clock(audio, [
 			{ beat: 0, tempo: 120 },
 			{ beat: 8, tempo: 180 }
@@ -86,6 +91,7 @@ module('Clock', function(fixture) {
 
 		setTimeout(function() {
 			clock.start();
+			console.log('clock.startTime', clock.startTime);
 		}, 100);
 
 		// Testing cueing is a little didgy because setTimeout does
@@ -104,7 +110,29 @@ module('Clock', function(fixture) {
 				var t = time - audio.currentTime;
 				ok(t > 0 && t < 0.120, 'Cue did not arrive between 0 and 120ms before time: ' + t);
 			});
-		}, 2000);
+
+			clock.cue(10, function(time) {
+				var t = time - audio.currentTime;
+				ok(isWithinGnatsCrotchet(time, clock.startTime + 14/3), 'Time is not time at beat 10. ' + time + ' ' + (clock.startTime + 14/3));
+				ok(t > 0 && t < 0.120, 'Cue did not arrive between 0 and 120ms before time: ' + t);
+			});
+		}, 1000);
+
+		setTimeout(function() {
+			start();
+		}, 5000);
+	});
+
+	asyncTest('.cue(beat, fn)', 2, function() {
+		var clock = new Clock(audio, [
+			{ beat: 0, tempo: 120 },
+			{ beat: 8, tempo: 180 }
+		]);
+
+		setTimeout(function() {
+			clock.start();
+			console.log('clock.startTime', clock.startTime);
+		}, 100);
 
 		setTimeout(function() {
 			var beat = clock.beat + 2;
@@ -115,10 +143,18 @@ module('Clock', function(fixture) {
 
 			clock.cue(beat, fn);
 			clock.uncue(fn);
-		}, 3000);
+
+			clock.cue(12, function(time) {
+				var t = time - audio.currentTime;
+				ok(isWithinGnatsCrotchet(time, clock.startTime + 17/4), 'Time is not time at beat 12. ' + time + ' ' + (clock.startTime + 17/4));
+				ok(t > 0 && t < 0.120, 'Cue did not arrive between 0 and 120ms before time: ' + t);
+			});
+
+			clock.create(240, 8);
+		}, 500);
 
 		setTimeout(function() {
 			start();
-		}, 5000);
+		}, 6000);
 	});
 });
