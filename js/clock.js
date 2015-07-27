@@ -185,25 +185,41 @@
 				return entry;
 			},
 
+			on: function(beat, fn) {
+				cue(cues, audio.currentTime, this.timeAtBeat(beat), fn, 0);
+				return this;
+			},
+
+			cue: function(beat, fn, offset) {
+				cue(cues, audio.currentTime, this.timeAtBeat(beat), fn, isDefined(offset) ? offset : lookahead);
+				return this;
+			},
+
+			uncue: function(beat, fn) {
+				if (typeof beat === 'number') {
+					uncue(cues, this.timeAtBeat(beat), fn);
+				}
+				else {
+					uncue(cues, undefined, beat);
+				}
+
+				return this;
+			},
+
+			uncueAfter: function(beat, fn) {
+				uncueLater(cues, this.timeAtBeat(beat), fn);
+				return this;
+			},
+
 			onTime: function(time, fn) {
 				// Make the cue timer 
 				cue(cues, audio.currentTime, time, fn, 0);
 				return this;
 			},
 
-			onBeat: function(beat, fn) {
-				cue(cues, audio.currentTime, this.timeAtBeat(beat), fn, 0);
-				return this;
-			},
-
 			cueTime: function(time, fn, offset) {
 				// Make the cue timer
 				cue(cues, audio.currentTime, time, fn, isDefined(offset) ? offset : lookahead);
-				return this;
-			},
-
-			cueBeat: function(beat, fn, offset) {
-				cue(cues, audio.currentTime, this.timeAtBeat(beat), fn, isDefined(offset) ? offset : lookahead);
 				return this;
 			},
 
@@ -218,24 +234,8 @@
 				return this;
 			},
 
-			uncueBeat: function(beat, fn) {
-				if (typeof beat === 'number') {
-					uncue(cues, this.timeAtBeat(beat), fn);
-				}
-				else {
-					uncue(cues, undefined, beat);
-				}
-
-				return this;
-			},
-
 			uncueAfterTime: function(time, fn) {
 				uncueLater(cues, time, fn);
-				return this;
-			},
-
-			uncueAfterBeat: function(beat, fn) {
-				uncueLater(cues, this.timeAtBeat(beat), fn);
 				return this;
 			}
 		});

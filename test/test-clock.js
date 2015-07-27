@@ -78,7 +78,7 @@ module('Clock', function(fixture) {
 		}, 5000);
 	});
 
-	asyncTest('.cueBeat(beat, fn)', 1, function() {
+	asyncTest('.cue(beat, fn)', 1, function() {
 		var clock = new Clock(audio, [
 			{ beat: 0, tempo: 120 },
 			{ beat: 8, tempo: 180 }
@@ -95,12 +95,12 @@ module('Clock', function(fixture) {
 			var beat = clock.beat + 2;
 
 			function fn(time) {
-				ok(false, 'This test should never run - should have been .uncueBeat(beat)');
+				ok(false, 'This test should never run - should have been .uncue(beat)');
 			}
 
-			clock.cueBeat(beat, fn);
-			clock.uncueBeat(beat);
-			clock.cueBeat(beat + 1, function(time) {
+			clock.cue(beat, fn);
+			clock.uncue(beat);
+			clock.cue(beat + 1, function(time) {
 				var t = time - audio.currentTime;
 				ok(t > 0 && t < 0.120, 'Cue did not arrive between 0 and 120ms before time: ' + t);
 			});
@@ -110,11 +110,11 @@ module('Clock', function(fixture) {
 			var beat = clock.beat + 2;
 
 			function fn(time) {
-				ok(false, 'This test should never run - should have been .uncueBeat(fn)');
+				ok(false, 'This test should never run - should have been .uncue(fn)');
 			}
 
-			clock.cueBeat(beat, fn);
-			clock.uncueBeat(fn);
+			clock.cue(beat, fn);
+			clock.uncue(fn);
 		}, 3000);
 
 		setTimeout(function() {
