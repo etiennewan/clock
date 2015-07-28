@@ -1,3 +1,7 @@
+<p>If you don't hear anything, turn the volume up.</p>
+
+<input type="range" min="0.125" max="6" step="any" id="clock-rate" />
+
 <script src="modules/collection/js/object.assign.js"></script>
 <script src="modules/collection/js/observe.js"></script>
 <script src="modules/collection/js/mixin.array.js"></script>
@@ -24,11 +28,12 @@
 	/* Rate */
 
 	var rate = AudioObject.outputs(clock, 'rate');
+	var duration = AudioObject.outputs(clock, 'duration');
 	var gain = audio.createGain();
 	var analyser = audio.createAnalyser();
 
 	rate.connect(gain);
-	gain.connect(analyser);
+	rate.connect(analyser);
 
 	gain.gain.value = 0.5;
 	analyser.fftSize = 1024;
@@ -40,9 +45,9 @@
 		analyser.getFloatTimeDomainData(dataArray);
 
 		var max = Math.max.apply(Math, dataArray);
-		var min = Math.min.apply(Math, dataArray);
+		//var min = Math.min.apply(Math, dataArray);
 
-		return min + (max - min) / 2 ;
+		return max;
 	};
 
 	/* Buffers */
@@ -56,6 +61,7 @@
 			request.responseType = 'arraybuffer';
 
 			request.onload = function() {
+
 				audio.decodeAudioData(request.response, accept, reject);
 			}
 
@@ -65,9 +71,16 @@
 
 	function playBuffer(buffer) {
 		var source = audio.createBufferSource();
-		gain.connect(source.playbackRate);
+
+		// Control the playback rate entirely from the clock rate. A bug in
+		// Chrome (Fixed in 44) was preventing playbackRate from hearing
+		// connections:
+		// https://code.google.com/p/chromium/issues/detail?id=471675
+		source.playbackRate.value = 0;
+		rate.connect(source.playbackRate);
+
 		source.connect(audio.destination);
-		source.buffer = buffer || [];
+		source.buffer = buffer || new Float32Array(0);
 		return source;
 	}
 
@@ -128,19 +141,40 @@
 		clock.cue(n, cue);
 	}
 
-	clock.start(1);
+	clock.start(2.139847);
 
-	cueHat();
+	setTimeout(function() {
+		console.log('PLAY');
 
-	clock
-	.cue(0,  playBass)
-	.cue(2,  playBass)
-	.cue(4,  playBass)
-	.cue(6,  playBass)
-	.cue(8,  playBass)
-	.cue(10, playBass)
-	.cue(12, playBass)
-	.cue(14, playBass)
-	.cue(16, playBass)
-	.on(16, end);
+		cueHat();
+
+		clock
+		.cue(0,    playBass)
+		.cue(2,    playSnare)
+		.cue(3.5,  playBass)
+		.cue(4,    playBass)
+		.cue(6,    playSnare)
+		.cue(7.5,  playBass)
+		.cue(8,    playBass)
+		.cue(10,   playSnare)
+		.cue(11.5, playBass)
+		.cue(12,   playBass)
+		.cue(14,   playSnare)
+		.cue(15.5, playBass)
+		.cue(16,   playBass)
+		.on(16, end);
+	}, 500);
+
+	setTimeout(function() {
+		clock.tempo(12, 60);
+	}, 800);
+
+
+	/* Input control */
+	var control = document.getElementById('clock-rate');
+
+	control.addEventListener('input', function(e) {
+		var value = parseFloat(e.target.value);
+		clock.rate = value;
+	});
 </script>
