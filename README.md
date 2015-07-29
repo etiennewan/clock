@@ -1,5 +1,5 @@
 # Clock
-Clock maps a beat clock against Web Audio context's time clock and provides
+Clock maps a beat clock against a Web Audio time clock and provides
 functions for scheduling function calls.
 
 ## Dependencies and tests
@@ -20,42 +20,58 @@ Tests use Karma. To run tests:
 	npm install
 	karma start
 
-## Clock(audio, data)
+## Clock(audio, array)
 
 Constructs a tempo clock, where <code>audio</code> is a Web Audio context and
 <code>data</code> is an optional array of tempo changes.
 
     var audio = new window.AudioContext();
-    var clock = new Clock(audio);
+    var data  = [
+        { beat: 0, tempo: 120 },
+        { beat: 16, tempo: 180 }
+    ];
+    var clock = new Clock(audio, data);
 
-A clock is tool for scheduling function calls on times or beats.
-A clock is a Collection of tempo data, used to map a <code>beat</code> clock
-against the audio context's <code>time</code> clock. It is also an AudioObject
-with a default output representing the current beat <code>rate</code>.
+The <code>clock</code> object is now a Collection of tempo data that maps a
+<code>beat</code> clock against the audio context's <code>time</code> clock. It
+is a library of properties and methods for scheduling function calls. It is also
+an <a href="http://github.com/soundio/audio-object">AudioObject</a> with two
+outputs, <code>"rate"</code> and <code>"duration"</code>, for syncing Web Audio
+parameters to the tempo.
 
 ## clock
 
 ### .time
 
-The current time. Gets <code>audio.currentTime</code>.
+The current time. Gets <code>audio.currentTime</code>. Read-only.
 
 ### .beat
 
-The current beat. Gets <code>clock.beatAtTime(audio.currentTime)</code>.
+The current beat. Gets <code>clock.beatAtTime(audio.currentTime)</code>. Read-only.
 
-### .create(tempo, beat)
+### .rate
+
+The current rate, in beats per second.
+
+### .timeAtBeat(beat)
+
+Returns the audio context time at <code>beat</code>.
+
+### .beatAtTime(time)
+
+Returns the beat at <code>time</code>.
+
+### .automate(name, value, time)
+
+    // Move to 120bpm in 2.5 seconds
+    clock.automate('rate', 2, clock.time + 2.5);
+
+Inherited from <a href="http://github.com/soundio/audio-object">AudioObject</a>.
+
+### .tempo(beat, tempo)
 
 Creates a tempo change at a time given by <code>beat</code>. If beat is not
 defined, the clock creates a tempo change at the current <code>beat</code>.
-
-### .add(tempo)
-
-Adds a tempo change to the list. Set tempo to 120bpm at beat 42:
-
-    clock.add({
-        beat: 42,
-        rate: 2
-    });
 
 ### .find(beat)
 
@@ -65,54 +81,117 @@ Returns tempo change found at <code>beat</code> or <code>undefined</code>.
 
 Removes tempo change found at <code>beat</code>.
 
-### .cueTime(time, fn)<br/>.cueBeat(beat, fn)
+### .on(beat, fn)
 
-Cue a function to be called just before <code>time</code> or <code>beat</code>.
+Shorthand for <code>clock.cue(beat, fn, 0)</code>, calls <code>fn</code>
+at the beat specified (<code>0</code> ms lookahead).
+
+### .cue(beat, fn)
+
+Cue a function to be called just before <code>beat</code>.
 <code>fn</code> is called with the argument <code>time</code>, which can used to
 accurately schedule Web Audio changes.
 
-    clock.cueBeat(42, function(time) {
+    clock.cue(42, function(time) {
         gainParam.setValueAtTime(time, 0.25);
         bufferSourceNode.start(time);
     });
 
-##### .cueTime(time, fn, lookahead)<br/>.cueBeat(time, fn, lookahead)
+Pass in a third parameter <code>lookahead</code> to override the default
+(<code>0.05</code>s) lookahead:
 
-Pass in a number <code>lookahead</code> to override the default <code>-60</code> ms.
+    clock.cue(44, function(time) {
+        gainParam.setValueAtTime(time, 1);
+        bufferSourceNode.stop(time);
+    }, 0.08);
 
-### .onTime(time, fn)<br/>.onBeat(beat, fn)
+### .uncue(beat, fn)
 
-Shorthand for <code>clock.cueTime(time, fn, 0)</code> or
-<code>clock.cueBeat(beat, fn, 0)</code>, calls <code>fn</code>
-at the time or beat specified with <code>0</code> ms lookahead.
+Removes <code>fn</code> at <code>beat</code> from the timer queue.
+Either, neither or both <code>beat</code> and <code>fn</code> can be given.
 
-### .uncueTime(time, fn)<br/>.uncueBeat(beat, fn)
+Remove all cues from the timer queue:
 
-Removes <code>fn</code> at <code>time</code> or <code>beat</code> from the timer queue.
-Either or both <code>time</code> and <code>fn</code> can be given. To remove all cues
-at <code>time</code> or <code>beat</code> from the timer queue:
+    clock.uncue();
 
-    clock.uncueTime(time)
-    clock.uncueBeat(beat)
+Remove all cues at <code>beat</code> from the timer queue:
 
-To removes all cues to <code>fn</code> from the timer queue:
+    clock.uncue(beat);
 
-    clock.uncueTime(fn)
+Remove all cues to <code>fn</code> from the timer queue:
 
-### .uncueAfterTime(time, fn)<br/>.uncueAfterBeat(beat, fn)
+    clock.uncue(fn);
 
-Removes all cues to <code>fn</code> after <code>time</code> or <code>beat</code>.
-Either or both <code>time</code>/<code>beat</code> and <code>fn</code> can be given.
-To remove all cues after <code>time</code> or <code>beat</code> from the timer queue:
+Remove all cues at <code>beat</code> for <code>fn</code> from the timer queue:
 
-    clock.uncueAfterTime(time)
-    clock.uncueAfterBeat(beat)
+    clock.uncue(beat, fn)
 
-### .timeAtBeat(beat)
+### .uncueAfter(beat, fn)
 
-Returns the audio context time at <code>beat</code>.
+Removes <code>fn</code> after <code>beat</code> from the timer queue.
+<code>fn</code> is optional.
 
-### .beatAtTime(time)
+Remove all cues after <code>beat</code> from the timer queue:
 
-Returns the beat at <code>time</code>.
+    clock.uncueAfter(beat);
+
+Remove all cues after <code>beat</code> for <code>fn</code> from the timer queue:
+
+    clock.uncueAfter(beat, fn)
+
+### .onTime(time, fn)
+
+Shorthand for <code>clock.cue(time, fn, 0)</code>, calls <code>fn</code>
+at the time specified (<code>0</code> ms lookahead).
+
+### .cueTime(time, fn)
+
+Cue a function to be called just before <code>time</code>. <code>fn</code> is
+called with the argument <code>time</code>, which can used to accurately
+schedule changes to Web Audio parameters:
+
+    clock.cue(42, function(time) {
+        gainParam.setValueAtTime(time, 0.25);
+        bufferSourceNode.start(time);
+    });
+
+Pass in a third parameter <code>lookahead</code> to override the default
+(<code>0.05</code>s) lookahead:
+
+    clock.cue(44, fn, 0.08);
+
+### .uncueTime(time, fn)
+
+Removes <code>fn</code> at <code>time</code> from the timer cues.
+Either, neither or both <code>time</code> and <code>fn</code> can be given.
+
+Remove all cues from the timer queue:
+
+    clock.uncueTime();
+
+Remove all cues at <code>time</code> from the timer queue:
+
+    clock.uncueTime(time);
+
+Remove all cues to <code>fn</code> from the timer queue:
+
+    clock.uncueTime(fn);
+
+Remove all cues at <code>time</code> for <code>fn</code> from the timer queue:
+
+    clock.uncueTime(time, fn)
+
+### .uncueAfterBeat(time, fn)
+
+Removes <code>fn</code> after <code>time</code> from the timer queue.
+<code>fn</code> is optional.
+
+Remove all cues after <code>time</code> from the timer queue:
+
+    clock.uncueAfterTime(time);
+
+Remove all cues after <code>time</code> for <code>fn</code> from the timer queue:
+
+    clock.uncueAfterTime(time, fn)
+
 

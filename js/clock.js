@@ -31,6 +31,9 @@
 
 	function rateToTempo(rate) { return rate * 60; }
 
+
+	// Cues
+
 	// A cue looks like this:
 	// [beat, time, fn, lookahead, timeout]
 
@@ -65,6 +68,11 @@
 		cues.push(data);
 	}
 
+	function destroyCue(cues, n) {
+		cues.splice(n, 1);
+		clearTimeout(cues[n][4]);
+	}
+
 	function uncueAll(cues) {
 		var n = cues.length;
 
@@ -79,11 +87,38 @@
 		var n = cues.length;
 
 		while (n--) {
-			if (beat === cues[n][0]) {
-				if (!fn || fn === cues[n][2]) {
-					cues.splice(n, 1);
-					clearTimeout(cues[n][4]);
-				}
+			if (beat === cues[n][0] && (!fn || fn === cues[n][2])) {
+				destroyCue(cues, n);
+			}
+		}
+	}
+
+	function uncueTime(cues, time, fn) {
+		var n = cues.length;
+
+		while (n--) {
+			if (time === cues[n][1] && (!fn || fn === cues[n][2])) {
+				destroyCue(cues, n);
+			}
+		}
+	}
+
+	function uncueAfterBeat(cues, beat, fn) {
+		var n = cues.length;
+
+		while (n--) {
+			if (beat < cues[n][0] && (!fn || fn === cues[n][2])) {
+				destroyCue(cues, n);
+			}
+		}
+	}
+
+	function uncueAfterTime(cues, time, fn) {
+		var n = cues.length;
+
+		while (n--) {
+			if (time < cues[n][1] && (!fn || fn === cues[n][2])) {
+				destroyCue(cues, n);
 			}
 		}
 	}
@@ -93,23 +128,7 @@
 
 		while (n--) {
 			if (fn === cues[n][2]) {
-				cues.splice(n, 1);
-				clearTimeout(cues[n][4]);
-			}
-		}
-	}
-
-	function uncueLater(cues, time, fn) {
-		var n = cues.length;
-		var data;
-
-		while (n--) {
-			data = cues[n];
-			if (time >= data[0]) {
-				if (!fn || fn === data[1]) {
-					cues.splice(n, 1);
-					clearTimeout(data[2]);
-				}
+				destroyCue(cues, n);
 			}
 		}
 	}
@@ -154,6 +173,9 @@
 		}
 	}
 
+
+	// Tempos
+
 	function deleteTimesAfterBeat(clock, beat) {
 		var n = -1;
 		var entry;
@@ -192,6 +214,9 @@
 		return addTempo(clock, cues, beat, tempo);
 	}
 
+
+	// Web Audio
+
 	function UnityNode() {
 		var oscillator = audio.createOscillator();
 		var waveshaper = audio.createWaveShaper();
@@ -208,6 +233,9 @@
 		return waveshaper;
 	}
 
+
+	// Clock constructor
+
 	function Clock(audio, data) {
 		var clock = this;
 		var starttime = audio.currentTime;
@@ -217,6 +245,7 @@
 		var durationNode = audio.createGain();
 		var rate = 1;
 		var cues = [];
+		var timeCues = [];
 
 		rateNode.channelCount = 1;
 		durationNode.channelCount = 1;
@@ -273,8 +302,8 @@
 
 		assign(this, {
 			start: function(time) {
-				deleteTimesAfterBeat(this, 0);
 				starttime = isDefined(time) ? time : audio.currentTime ;
+				deleteTimesAfterBeat(this, 0);
 
 				// Cue up tempo changes
 				this.forEach(cueTempo);
@@ -308,42 +337,45 @@
 					uncueBeat(cues, beat, fn);
 				}
 				else {
-					uncueFn(cues, beat);
+					fn = beat;
+					uncueFn(cues, fn);
 				}
 
 				return this;
 			},
 
 			uncueAfter: function(beat, fn) {
-				uncueLater(cues, this.timeAtBeat(beat), fn);
+				uncueAfterBeat(beat, fn);
 				return this;
 			},
 
 			onTime: function(time, fn) {
-				// Make the cue timer 
-				cue(cues, audio.currentTime, time, fn, 0);
+				cue(timeCues, audio.currentTime, undefined, time, fn, 0);
 				return this;
 			},
 
 			cueTime: function(time, fn, offset) {
-				// Make the cue timer
-				cue(cues, audio.currentTime, time, fn, isDefined(offset) ? offset : lookahead);
+				cue(timeCues, audio.currentTime, undefined, time, fn, isDefined(offset) ? offset : lookahead);
 				return this;
 			},
 
 			uncueTime: function(time, fn) {
-				if (typeof time === 'number') {
-					uncue(cues, time, fn);
+				if (arguments.length === 0) {
+					uncueAll(timeCues);
+				}
+				else if (typeof beat === 'number') {
+					uncueTime(timeCues, time, fn);
 				}
 				else {
-					uncue(cues, undefined, time);
+					fn = time;
+					uncueFn(timeCues, fn);
 				}
 
 				return this;
 			},
 
 			uncueAfterTime: function(time, fn) {
-				uncueLater(cues, time, fn);
+				uncueAfterTime(time, fn);
 				return this;
 			}
 		});
