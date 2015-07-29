@@ -20,7 +20,6 @@
 
 	var lookahead = 0.050; // seconds
 
-	var empty = [];
 
 	function noop() {}
 
@@ -217,6 +216,7 @@
 		var rateNode     = audio.createGain();
 		var durationNode = audio.createGain();
 		var rate = 1;
+		var cues = [];
 
 		rateNode.channelCount = 1;
 		durationNode.channelCount = 1;
@@ -225,6 +225,17 @@
 
 		unityNode.connect(rateNode);
 		unityNode.connect(durationNode);
+
+		function cueTempo(entry) {
+			clock.cue(entry.beat, function(time) {
+				var rate = tempoToRate(entry.tempo);
+				var _addRate = addRate;
+				addRate = noop;
+				clock.automate('rate', rate, time, 'step');
+				addRate = _addRate;
+				if (debug) console.log('Clock: cued tempo bpm:', entry.tempo, 'rate:', rate);
+			});
+		}
 
 		// Set up clock as a collection of tempo data.
 		Collection.call(this, data || [], { index: 'beat' });
@@ -253,19 +264,6 @@
 				}
 			}
 		});
-
-		var cues = [];
-
-		function cueTempo(entry) {
-			clock.cue(entry.beat, function(time) {
-				var rate = tempoToRate(entry.tempo);
-				var _addRate = addRate;
-				addRate = noop;
-				clock.automate('rate', rate, time, 'step');
-				addRate = _addRate;
-				if (debug) console.log('Clock: cued tempo bpm:', entry.tempo, 'rate:', rate);
-			});
-		}
 
 		Object.defineProperties(this, {
 			startTime: { get: function() { return starttime; }},

@@ -1,7 +1,7 @@
 <p>If you don't hear anything, turn the volume up.</p>
 
 <label>Rate</label>
-<input type="range" min="0.125" max="6" step="any" id="clock-rate" value="2" />
+<input type="range" min="0.33333333333333" max="6" step="any" id="clock-rate" value="2" />
 
 <script src="modules/collection/js/object.assign.js"></script>
 <script src="modules/collection/js/observe.js"></script>
@@ -30,26 +30,28 @@
 
 	var rate = AudioObject.outputs(clock, 'rate');
 	var duration = AudioObject.outputs(clock, 'duration');
-	var gain = audio.createGain();
+	var durationGain = audio.createGain();
+	var delay = audio.createDelay(3);
+	var delayGain = audio.createGain();
 	var analyser = audio.createAnalyser();
 
-	rate.connect(gain);
-	rate.connect(analyser);
-
-	gain.gain.value = 0.5;
 	analyser.fftSize = 1024;
+	durationGain.gain.value = 0.5;
+	delay.delayTime.value = 0;
+	delayGain.gain.value = 0.25;
+	rate.connect(analyser);
+	duration.connect(durationGain);
+	durationGain.connect(delay.delayTime);
+	delay.connect(delayGain);
+	delayGain.connect(audio.destination);
 
 	var bufferLength = analyser.frequencyBinCount;
 	var dataArray = new Float32Array(bufferLength);
 
 	function analyseRate() {
 		analyser.getFloatTimeDomainData(dataArray);
-
-		var max = Math.max.apply(Math, dataArray);
-		//var min = Math.min.apply(Math, dataArray);
-
-		return max;
-	};
+		return Math.max.apply(Math, dataArray);
+	}
 
 	/* Buffers */
 
@@ -81,6 +83,7 @@
 		rate.connect(source.playbackRate);
 
 		source.connect(audio.destination);
+		source.connect(delay);
 		source.buffer = buffer || new Float32Array(0);
 		return source;
 	}
@@ -167,7 +170,7 @@
 	}, 500);
 
 	setTimeout(function() {
-		clock.rate = 0.6666667;
+		clock.rate = 1;
 		clock.tempo(12, 60);
 	}, 2400);
 
