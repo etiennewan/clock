@@ -1,6 +1,7 @@
 <p>If you don't hear anything, turn the volume up.</p>
 
-<input type="range" min="0.125" max="6" step="any" id="clock-rate" />
+<label>Rate</label>
+<input type="range" min="0.125" max="6" step="any" id="clock-rate" value="2" />
 
 <script src="modules/collection/js/object.assign.js"></script>
 <script src="modules/collection/js/observe.js"></script>
@@ -141,7 +142,7 @@
 		clock.cue(n, cue);
 	}
 
-	clock.start(2.139847);
+	clock.start(2);
 
 	setTimeout(function() {
 		console.log('PLAY');
@@ -166,8 +167,9 @@
 	}, 500);
 
 	setTimeout(function() {
+		clock.rate = 0.6666667;
 		clock.tempo(12, 60);
-	}, 800);
+	}, 2400);
 
 
 	/* Input control */

@@ -20,6 +20,8 @@
 
 	var lookahead = 0.050; // seconds
 
+	var empty = [];
+
 	function noop() {}
 
 	function isDefined(val) {
@@ -35,9 +37,9 @@
 
 	function createTimeout(cues, data, ms) {
 		return setTimeout(function(time, fn) {
-			fn(time);
 			var i = cues.indexOf(data);
 			cues.splice(i, 1);
+			fn(time);
 		}, ms, data[1], data[2]);
 	}
 
@@ -46,10 +48,10 @@
 
 		// If we are already more than 20ms past the cue time ignore
 		// the cue. Not 100% sure this the behaviour we want.
-		if (diff < -0.02) { return; }
+		// Actually, pretty sure we don't want to be dropping cues.
+		//if (diff < -0.02) { return; }
 
-		// If eventTime is within the next few milliseconds fire the
-		// cue fn right away.
+		// If cue time is in the immediate future we want to fire fn right away
 		if (diff < (lookahead + 0.02)) {
 			fn(time);
 			return;
@@ -113,24 +115,12 @@
 		}
 	}
 
-	function recueAfterTime(clock, cues, time) {
-		var n = clock.length;
-		var data;
-console.log(clock, n);
-		while (--n) {
-			data = cues[n];
-			if (time < data[0]) {
-				clearTimeout(data[3]);
-				//clock[n] = createCue(cues, data[0], data[1]);
-			}
-		}
-	}
-
 	function recueAfterBeat(clock, cues, beat) {
 		var n = cues.length;
+		var immediates = [];
 		var data, diff, ms;
 
-		while (--n) {
+		while (n--) {
 			data = cues[n];
 			if (beat < data[0]) {
 				// Clear the existing timeout in data[4]
@@ -140,10 +130,13 @@ console.log(clock, n);
 				data[1] = clock.timeAtBeat(data[0]);
 				diff = data[1] - clock.time;
 
-				// If cue time is in the near future fire fn in data[2] right
-				// away and remove cue from list
+				// If cue time is in the immediate future we want to fire fn in
+				// data[2] right away. Note that this provides a potentially
+				// synchronous means of modifying the cues list (a cued fn may
+				// call .uncue(), for example). Bad, as we are currently looping
+				// through it. So cache them and call them after the loop.
 				if (diff < (data[3] + 0.02)) {
-					data[2](time);
+					immediates.push(data);
 					cues.splice(n, 1);
 				}
 				// Otherwise create a new timer and stick it in data[4]
@@ -153,6 +146,13 @@ console.log(clock, n);
 				}
 			}
 		}
+
+		n = immediates.length;
+
+		while (n--) {
+			data = immediates[n];
+			data[2](data[1]);
+		}
 	}
 
 	function deleteTimesAfterBeat(clock, beat) {
@@ -160,9 +160,37 @@ console.log(clock, n);
 		var entry;
 
 		while (clock[++n]) {
-			entry = clock[n];
-			if (entry.beat > beat) { delete clock[n].time; }
+			if (clock[n].beat > beat) { delete clock[n].time; }
 		}
+	}
+
+	function addTempo(clock, cues, beat, tempo) {
+		var entry = clock.find(beat);
+
+		if (entry) {
+			if (entry.tempo !== tempo) {
+				entry.tempo = tempo;
+				deleteTimesAfterBeat(clock, beat);
+				recueAfterBeat(clock, cues, beat);
+			}
+
+			// Returning undefined means there is nothing needing cued
+			return;
+		}
+
+		entry = { beat: beat, tempo: tempo };
+		clock.add(entry);
+		deleteTimesAfterBeat(clock, beat);
+		recueAfterBeat(clock, cues, beat);
+
+		// Return entry to have it cued
+		return entry;
+	}
+
+	function addRate(clock, cues, time, rate) {
+		var beat  = clock.beatAtTime(time);
+		var tempo = rateToTempo(rate);
+		return addTempo(clock, cues, beat, tempo);
 	}
 
 	function UnityNode() {
@@ -213,58 +241,31 @@ console.log(clock, n);
 				},
 
 				set: function(value, time, duration, curve) {
+					// For the time being, only support step changes to tempo
 					AudioObject.automate(rateNode.gain, value, time, 0, 'step');
 					AudioObject.automate(durationNode.gain, 1/value, time, 0, 'step');
 					rate = value;
 
-console.log('SET RATE', time.toFixed(3));
-
 					// A tempo change must be created where rate has been set
-					// externally. Calls to setTempo from within clock should
-					// first set setTempo to noop to avoid this.
-					addTempo(time, rate);
+					// externally. Calls to addRate from within clock should
+					// first set addRate to noop to avoid this.
+					addRate(clock, cues, time, value);
 				}
 			}
 		});
 
 		var cues = [];
 
-		function addTempo(time, rate) {
-			var beat  = clock.beatAtTime(time);
-			var tempo = rateToTempo(rate);
-			var entry = clock.find(beat);
-
-			if (entry && entry.tempo !== tempo) {
-				entry.tempo = tempo;
-				entry.time = time;
-				recueAfterBeat(clock, cues, beat);
-			}
-			else {
-				clock.add({
-					tempo: tempo,
-					beat: beat,
-					time: time
-				});
-			}
-		}
-
 		function cueTempo(entry) {
 			clock.cue(entry.beat, function(time) {
 				var rate = tempoToRate(entry.tempo);
-				var _addTempo = addTempo;
-				addTempo = noop;
+				var _addRate = addRate;
+				addRate = noop;
 				clock.automate('rate', rate, time, 'step');
-				addTempo = _addTempo;
+				addRate = _addRate;
 				if (debug) console.log('Clock: cued tempo bpm:', entry.tempo, 'rate:', rate);
 			});
 		}
-
-		this
-		.on('add', function(clock, entry) {
-			deleteTimesAfterBeat(entry.beat);
-			cueTempo(entry);
-			recueAfterBeat(clock, cues, entry.beat);
-		});
 
 		Object.defineProperties(this, {
 			startTime: { get: function() { return starttime; }},
@@ -286,20 +287,9 @@ console.log('SET RATE', time.toFixed(3));
 			},
 
 			tempo: function(beat, tempo) {
-//				var entry = this.find(beat);
-//
-//				if (entry && entry.tempo !== tempo) {
-//					entry.tempo = tempo;
-//					recueAfterBeat(clock, cues, beat);
-//				}
-//				else {
-//					this.add({
-//						tempo: tempo,
-//						beat: beat
-//					});
-//				}
-//
-//				return entry;
+				var entry = addTempo(clock, cues, beat, tempo);
+				if (entry) { cueTempo(entry); }
+				return this;
 			},
 
 			on: function(beat, fn) {
