@@ -217,7 +217,7 @@
 
 	// Web Audio
 
-	function UnityNode() {
+	function UnityNode(audio) {
 		var oscillator = audio.createOscillator();
 		var waveshaper = audio.createWaveShaper();
 
@@ -240,7 +240,7 @@
 		var clock = this;
 		var starttime = audio.currentTime;
 
-		var unityNode    = UnityNode();
+		var unityNode    = UnityNode(audio);
 		var rateNode     = audio.createGain();
 		var durationNode = audio.createGain();
 		var cues = [];
