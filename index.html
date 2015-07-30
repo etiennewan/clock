@@ -28,8 +28,8 @@
 
 	/* Rate */
 
-	var rate = AudioObject.outputs(clock, 'rate');
-	var duration = AudioObject.outputs(clock, 'duration');
+	var rate = AudioObject.getOutput(clock, 'rate');
+	var duration = AudioObject.getOutput(clock, 'duration');
 	var durationGain = audio.createGain();
 	var delay = audio.createDelay(3);
 	var delayGain = audio.createGain();
