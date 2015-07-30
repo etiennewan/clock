@@ -243,14 +243,13 @@
 		var unityNode    = UnityNode();
 		var rateNode     = audio.createGain();
 		var durationNode = audio.createGain();
-		var rate = 1;
 		var cues = [];
 		var timeCues = [];
 
 		rateNode.channelCount = 1;
 		durationNode.channelCount = 1;
-		rateNode.gain.setValueAtTime(rate, starttime);
-		durationNode.gain.setValueAtTime(rate, starttime);
+		rateNode.gain.setValueAtTime(1, starttime);
+		durationNode.gain.setValueAtTime(1, starttime);
 
 		unityNode.connect(rateNode);
 		unityNode.connect(durationNode);
@@ -260,7 +259,7 @@
 				var rate = tempoToRate(entry.tempo);
 				var _addRate = addRate;
 				addRate = noop;
-				clock.automate('rate', rate, time, 'step');
+				clock.automate('rate', rate, time, 0, 'step');
 				addRate = _addRate;
 				if (debug) console.log('Clock: cued tempo bpm:', entry.tempo, 'rate:', rate);
 			});
@@ -276,21 +275,20 @@
 			duration: durationNode,
 		}, {
 			rate: {
-				get: function() {
-					return rate;
-				},
-
 				set: function(value, time, duration, curve) {
 					// For the time being, only support step changes to tempo
-					AudioObject.automate(rateNode.gain, value, time, 0, 'step');
-					AudioObject.automate(durationNode.gain, 1/value, time, 0, 'step');
-					rate = value;
+					AudioObject.automate(rateNode.gain, value, time, duration, curve);
+					AudioObject.automate(durationNode.gain, 1 / value, time, duration, curve);
 
 					// A tempo change must be created where rate has been set
 					// externally. Calls to addRate from within clock should
 					// first set addRate to noop to avoid this.
 					addRate(clock, cues, time, value);
-				}
+				},
+
+				defaultValue: 1,
+				curve: 'exponential',
+				duration: 0.004
 			}
 		});
 

@@ -1,6 +1,6 @@
 {
   "name": "clock",
-  "title": "Clock",
+  "title": "SoundIO Clock",
   "description": "A beat clock tempo-mapped against Web Audio's time clock and providing helpers for scheduling function calls.",
   "version": "0.1.0",
   "homepage": "http://sound.io",
