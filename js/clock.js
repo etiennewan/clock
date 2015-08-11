@@ -37,15 +37,13 @@
 	// A cue looks like this:
 	// [beat, time, fn, lookahead, timeout]
 
-	function createTimeout(cues, data, ms) {
-		return setTimeout(function(time, fn) {
-			var i = cues.indexOf(data);
-			cues.splice(i, 1);
-			fn(time);
-		}, ms, data[1], data[2]);
+	function fire(cues, data) {
+		var i = cues.indexOf(data);
+		cues.splice(i, 1);
+		data[2].apply(null, data[4]);
 	}
 
-	function cue(cues, currentTime, beat, time, fn, lookahead) {
+	function cue(cues, currentTime, beat, time, fn, lookahead, args) {
 		var diff = time - currentTime;
 
 		// If we are already more than 20ms past the cue time ignore
@@ -55,16 +53,16 @@
 
 		// If cue time is in the immediate future we want to fire fn right away
 		if (diff < (lookahead + 0.02)) {
-			fn(time);
+			fn.apply(null, args);
 			return;
 		}
 
 		// Cue up a function to fire at a time displaced by lookahead,
 		// storing the time, fn and timer in cues.
-		var data = [beat, time, fn, lookahead];
+		var data = [beat, time, fn, lookahead, args];
 		var ms = Math.floor((diff - lookahead) * 1000);
 
-		data.push(createTimeout(cues, data, ms));
+		data.push(setTimeout(fire, ms, cues, data));
 		cues.push(data);
 	}
 
@@ -160,7 +158,7 @@
 				// Otherwise create a new timer and stick it in data[4]
 				else {
 					ms = Math.floor((diff - data[3]) * 1000);
-					data[4] = createTimeout(cues, data, ms);
+					data[4] = setTimeout(fire, ms, cues, data);
 				}
 			}
 		}
@@ -322,8 +320,10 @@
 				return this;
 			},
 
-			cue: function(beat, fn, offset) {
-				cue(cues, audio.currentTime, beat, this.timeAtBeat(beat), fn, isDefined(offset) ? offset : lookahead);
+			cue: function(beat, fn) {
+				var args = Array.prototype.slice.call(arguments, 1);
+				args[0] = this.timeAtBeat(beat);
+				cue(cues, audio.currentTime, beat, this.timeAtBeat(beat), fn, lookahead, args);
 				return this;
 			},
 
