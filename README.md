@@ -101,7 +101,7 @@ Additional parameters are also passed to the callback <code>fn</code> as extra
 arguments.
 
     function fire(time, delayNode, value) {
-        delay.delayTime.setValueAtTime(time, value);
+        delayNode.delayTime.setValueAtTime(time, value);
     }
     
     clock.cue(42, fire, delayNode, value);
