@@ -137,7 +137,7 @@
 
 		function cue(time) {
 			playHat(time);
-			if (n > 32) { return; }
+			if (n >= 16) { return; }
 			n = n + 0.5;
 			clock.cue(n, cue);
 		}

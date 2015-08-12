@@ -140,7 +140,7 @@
 			data = cues[n];
 			if (beat < data[0]) {
 				// Clear the existing timeout in data[4]
-				clearTimeout(data[4]);
+				clearTimeout(data[5]);
 
 				// Recalculate the time in data[1] from the beat in data[0]
 				data[1] = clock.timeAtBeat(data[0]);
@@ -158,7 +158,7 @@
 				// Otherwise create a new timer and stick it in data[4]
 				else {
 					ms = Math.floor((diff - data[3]) * 1000);
-					data[4] = setTimeout(fire, ms, cues, data);
+					data[5] = setTimeout(fire, ms, cues, data);
 				}
 			}
 		}
@@ -316,7 +316,9 @@
 			},
 
 			on: function(beat, fn) {
-				cue(cues, audio.currentTime, beat, this.timeAtBeat(beat), fn, 0);
+				var args = Array.prototype.slice.call(arguments, 1);
+				args[0] = this.timeAtBeat(beat);
+				cue(cues, audio.currentTime, beat, this.timeAtBeat(beat), fn, 0, args);
 				return this;
 			},
 
