@@ -67,15 +67,15 @@
 	}
 
 	function destroyCue(cues, n) {
+		clearTimeout(cues[n][5]);
 		cues.splice(n, 1);
-		clearTimeout(cues[n][4]);
 	}
 
 	function uncueAll(cues) {
 		var n = cues.length;
 
 		while (n--) {
-			clearTimeout(cues[n][4]);
+			clearTimeout(cues[n][5]);
 		}
 
 		cues.length = 0;
