@@ -261,7 +261,7 @@
 				var rate = tempoToRate(entry.tempo);
 				var _addRate = addRate;
 				addRate = noop;
-				clock.automate('rate', rate, time, 0, 'step');
+				clock.automate('rate', rate, time, 'step', 0);
 				addRate = _addRate;
 				if (debug) console.log('Clock: cued tempo bpm:', entry.tempo, 'rate:', rate);
 			});
