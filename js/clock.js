@@ -235,6 +235,10 @@
 	// Clock constructor
 
 	function Clock(audio, data) {
+		if (!audio) {
+			throw new Error('Clock() constructor requires an audio context as first parameter');
+		}
+
 		var clock = this;
 		var starttime = audio.currentTime;
 
@@ -291,9 +295,7 @@
 		});
 
 		Object.defineProperties(this, {
-			startTime: { get: function() { return starttime; }},
-			time: { get: function() { return audio.currentTime; }},
-			beat: { get: function() { return this.beatAtTime(audio.currentTime); }}
+			startTime: { get: function() { return starttime; }}
 		});
 
 		assign(this, {
@@ -315,12 +317,12 @@
 				return this;
 			},
 
-			on: function(beat, fn) {
-				var args = Array.prototype.slice.call(arguments, 1);
-				args[0] = this.timeAtBeat(beat);
-				cue(cues, audio.currentTime, beat, this.timeAtBeat(beat), fn, 0, args);
-				return this;
-			},
+//			on: function(beat, fn) {
+//				var args = Array.prototype.slice.call(arguments, 1);
+//				args[0] = this.timeAtBeat(beat);
+//				cue(cues, audio.currentTime, beat, this.timeAtBeat(beat), fn, 0, args);
+//				return this;
+//			},
 
 			cue: function(beat, fn) {
 				var args = Array.prototype.slice.call(arguments, 1);
@@ -381,7 +383,7 @@
 		});
 	}
 
-	assign(Clock.prototype, Collection.prototype, AudioObject.prototype, {
+	Object.defineProperties(assign(Clock.prototype, Collection.prototype, AudioObject.prototype, {
 		timeAtBeat: function(beat) {
 			// Sort tempos by beat
 			this.sort();
@@ -444,6 +446,9 @@
 
 			return beat + (time - t1) * rate;
 		}
+	}), {
+		time: { get: function() { return this.audio.currentTime; }},
+		beat: { get: function() { return this.beatAtTime(this.audio.currentTime); }}
 	});
 
 	assign(Clock, {
