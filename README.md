@@ -83,13 +83,13 @@ Removes tempo change found at <code>beat</code>.
 
 ### .on(beat, fn)
 
-Shorthand for <code>clock.cue(beat, fn, 0)</code>, calls <code>fn</code>
-at the beat specified (<code>0</code> ms lookahead).
+<!--Shorthand for <code>clock.cue(beat, fn, 0)</code-->
+Calls <code>fn</code> at the beat specified (no lookahead).
 
 ### .cue(beat, fn)
 
-Cue a function to be called just before <code>beat</code>.
-<code>fn</code> is called with the argument <code>time</code>, which can used to
+Cue a function to be called just before <code>beat</code>. <code>fn</code> is
+called with the argument <code>time</code>, which can used to
 accurately schedule Web Audio changes.
 
     clock.cue(42, function(time) {
@@ -97,13 +97,22 @@ accurately schedule Web Audio changes.
         bufferSourceNode.start(time);
     });
 
-Pass in a third parameter <code>lookahead</code> to override the default
+Additional parameters are also passed to the callback <code>fn</code> as extra
+arguments.
+
+    function fire(time, delayNode, value) {
+        delay.delayTime.setValueAtTime(time, value);
+    }
+    
+    clock.cue(42, fire, delayNode, value);
+
+<!--Pass in a third parameter <code>lookahead</code> to override the default
 (<code>0.05</code>s) lookahead:
 
     clock.cue(44, function(time) {
         gainParam.setValueAtTime(time, 1);
         bufferSourceNode.stop(time);
-    }, 0.08);
+    }, 0.08); -->
 
 ### .uncue(beat, fn)
 
