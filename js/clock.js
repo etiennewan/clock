@@ -4,7 +4,7 @@
 
 	console.log('Clock');
 	console.log('http://github.com/soundio/clock');
-	console.log('Map beats against time and schedule fn calls');
+	//console.log('Map beats against time and schedule fn calls');
 	console.log('––––––––––––––––––––––––––––––––––––––––––––');
 })(this);
 
