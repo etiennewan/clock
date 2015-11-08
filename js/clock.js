@@ -359,7 +359,7 @@
 			cueTime: function(time, fn, offset) {
 				var args = Array.prototype.slice.call(arguments, 1);
 				args[0] = time;
-				cue(timeCues, audio.currentTime, undefined, time, fn, lookahead, args);
+				cue(timeCues, audio.currentTime, undefined, time, fn, (isDefined(offset) ? offset : lookahead), args);
 				return this;
 			},
 
