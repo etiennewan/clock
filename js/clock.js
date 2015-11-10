@@ -5,7 +5,6 @@
 	console.log('Clock');
 	console.log('http://github.com/soundio/clock');
 	//console.log('Map beats against time and schedule fn calls');
-	console.log('––––––––––––––––––––––––––––––––––––––––––––');
 })(this);
 
 
@@ -184,7 +183,7 @@
 	}
 
 	function addTempo(clock, cues, beat, tempo) {
-		var entry = clock.find(beat);
+		var entry = clock.tempos.find(beat);
 
 		if (entry) {
 			if (entry.tempo !== tempo) {
@@ -198,7 +197,7 @@
 		}
 
 		entry = { beat: beat, tempo: tempo };
-		clock.add(entry);
+		clock.tempos.add(entry);
 		deleteTimesAfterBeat(clock, beat);
 		recueAfterBeat(clock, cues, beat);
 
@@ -268,7 +267,7 @@
 		}
 
 		// Set up clock as a collection of tempo data.
-		Collection.call(this, data || [], { index: 'beat' });
+		this.tempos = Collection(data || [], { index: 'beat' });
 
 		// Set up clock as an audio object with outputs "rate" and
 		// "duration" and audio property "rate". 
@@ -385,12 +384,19 @@
 		});
 	}
 
-	Object.defineProperties(assign(Clock.prototype, Collection.prototype, AudioObject.prototype, {
+	Object.setPrototypeOf(Clock.prototype, AudioObject.prototype);
+
+	Object.defineProperties(Clock.prototype, {
+		time: { get: function() { return this.audio.currentTime; }},
+		beat: { get: function() { return this.beatAtTime(this.audio.currentTime); }}
+	});
+
+	assign(Clock.prototype, mixin.events, {
 		timeAtBeat: function(beat) {
 			// Sort tempos by beat
-			this.sort();
+			this.tempos.sort();
 
-			var tempos = this;
+			var tempos = this.tempos;
 			var n = 0;
 			var entry = tempos[n];
 
@@ -418,9 +424,9 @@
 
 		beatAtTime: function(time) {
 			// Sort tempos by beat
-			this.sort();
+			this.tempos.sort();
 
-			var tempos = this;
+			var tempos = this.tempos;
 			var n = 0;
 			var entry = tempos[n];
 
@@ -448,9 +454,6 @@
 
 			return beat + (time - t1) * rate;
 		}
-	}), {
-		time: { get: function() { return this.audio.currentTime; }},
-		beat: { get: function() { return this.beatAtTime(this.audio.currentTime); }}
 	});
 
 	assign(Clock, {
@@ -472,3 +475,8 @@
 
 	window.Clock = Clock;
 })(window);
+
+(function(window) {
+	if (!window.console || !window.console.log) { return; }
+	console.log('_______________________________');
+})(this);
