@@ -17,6 +17,12 @@
 	var Collection  = window.Collection;
 	var assign      = Object.assign;
 
+	var defaults = {
+		frameDuration: 0.05,
+		// Cannot be less than frameDuration
+		lookahead:     0.04
+	};
+
 	var lookahead = 0.050; // seconds
 
 
@@ -29,6 +35,57 @@
 	function tempoToRate(tempo) { return tempo / 60; }
 
 	function rateToTempo(rate) { return rate * 60; }
+
+
+	// FrameTimer
+
+	function FrameTimer(duration, lookahead, now) {
+		var playing   = false;
+		var fns       = [];
+		var starttime, stoptime;
+
+		function fire() {
+			// Swap fns so that frames are not pushing new requests to the
+			// current fns list.
+			var functions = fns;
+			fns = [];
+
+			var fn;
+
+			for (fn of functions) {
+				fn(starttime, stoptime);
+			}
+
+			starttime = stoptime;
+			stoptime  = starttime + duration;
+		}
+
+		function frame() {
+			if (!fns.length) {
+				playing = false;
+				return;
+			}
+
+			fire();
+			setTimeout(frame, (starttime - now() - lookahead) * 1000);
+		}
+
+		function start() {
+			starttime = now();
+			stoptime  = starttime + duration;
+			playing   = true;
+			frame();
+		}
+
+		this.requestFrame = function requestFrame(fn) {
+			fns.push(fn);
+			if (!playing) { start(); }
+		};
+
+		this.stop = function stop() {
+			fns.length = 0;
+		};
+	}
 
 
 	// Cues
@@ -255,6 +312,10 @@
 		unityNode.connect(rateNode);
 		unityNode.connect(durationNode);
 
+		function now() {
+			return audio.currentTime - starttime;
+		}
+
 		function cueTempo(entry) {
 			clock.cue(entry.beat, function(time) {
 				var rate = tempoToRate(entry.tempo);
@@ -270,7 +331,7 @@
 		this.tempos = Collection(data || [], { index: 'beat' });
 
 		// Set up clock as an audio object with outputs "rate" and
-		// "duration" and audio property "rate". 
+		// "duration" and audio property "rate".
 		AudioObject.call(this, audio, undefined, {
 			rate:     rateNode,
 			duration: durationNode,
@@ -297,9 +358,19 @@
 			startTime: { get: function() { return starttime; }}
 		});
 
+		var timer = new FrameTimer(defaults.frameDuration, defaults.lookahead, now);
+
+		function requestFrame(fn) {
+			timer.requestFrame(fn);
+		}
+
 		assign(this, {
 			start: function(time) {
-				starttime = isDefined(time) ? time : audio.currentTime ;
+				starttime = isDefined(time) ? time : audio.currentTime;
+				this.requestFrame = timer.requestFrame;
+
+				// Todo: replace the cueing system with requestFrame ----
+
 				deleteTimesAfterBeat(this, 0);
 
 				// Cue up tempo changes
@@ -308,6 +379,11 @@
 				//recueAfterBeat(cues, this, 0);
 				this.trigger('start', starttime);
 				return this;
+			},
+
+			stop: function(time) {
+				this.requestFrame = Fn.noop;
+				timer.stop();
 			},
 
 			tempo: function(beat, tempo) {
@@ -380,7 +456,9 @@
 			uncueAfterTime: function(time, fn) {
 				uncueAfterTime(time, fn);
 				return this;
-			}
+			},
+
+			requestFrame: Fn.noop
 		});
 	}
 
